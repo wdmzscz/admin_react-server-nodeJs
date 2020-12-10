@@ -8,6 +8,8 @@ const UserModel = require('../models/UserModel')
 const CategoryModel = require('../models/CategoryModel')
 const ProductModel = require('../models/ProductModel')
 const RoleModel = require('../models/RoleModel')
+//const expjwt = require('express-jwt');
+const jwtToken = require('jsonwebtoken')
 
 
 // 得到路由器对象
@@ -27,16 +29,29 @@ router.post('/login', (req, res) => {
       if (user) { // 登陆成功
         // 生成一个cookie(userid: user._id), 并交给浏览器保存
         res.cookie('userid', user._id, {maxAge: 1000 * 60 * 60 * 24})
+        const token = 'Bearer ' + jwtToken.sign(
+          {
+            _id: user._id,
+            admin: user.role === 'admin'
+          },
+          'secret12345',
+          {
+            expiresIn: 3600 * 24 * 3
+          }
+        )
+      
         if (user.role_id) {
           RoleModel.findOne({_id: user.role_id})
             .then(role => {
               user._doc.role = role
+              user.token =token;
               console.log('role user', user)
               res.send({status: 0, data: user})
             })
         } else {
           user._doc.role = {menus: []}
           // 返回登陆成功信息(包含user)
+          user.token =token
           res.send({status: 0, data: user})
         }
 
